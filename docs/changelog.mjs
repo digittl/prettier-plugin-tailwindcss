@@ -1236,16 +1236,18 @@ class Changelog {
 
     console.log(`Groups: ${bodies.map(g => g.name).join(', ')}`);
 
-    const untagged = bodies
-      .flatMap(g => g.body)
-      .filter(l => this.#isBullet(l) && !/\(#\d+\)/.test(l));
+    // Wrap each source group as its own [Unreleased] block so #entries() judges its base indent alone.
+    const untagged = sources
+      .flatMap(s => s.groups)
+      .flatMap(g => this.#entries(['## [Unreleased]', `### ${g.name}`, ...g.body]))
+      .filter(e => !/\(#\d+\)/.test(e.text));
 
     if (untagged.length) {
       console.log(
         `\n⚠️  ${untagged.length} bullet(s) missing a (#NNN) PR tag — the PR webhook stamps these post-merge, so a missing one means that fragment never went through it:`
       );
-      for (const l of untagged) {
-        console.log(`  - ${this.#truncate(l.replace(/^\s*[-*+]\s+/, ''), 90)}`);
+      for (const e of untagged) {
+        console.log(`  - ${this.#truncate(e.text, 90)}`);
       }
     }
 
